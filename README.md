@@ -1,24 +1,36 @@
-###ies_rescale
+### ies_rescale
 
 A small library that allows to rescale IESNA Photometric Data Profiles, more commonly referred to as simply IES Profiles.
 
 The idea was born out of necessity to handle IES Profiles assigned to Spot Lights in a more natural way. For instance, Unreal engine [masks/clips](https://docs.unrealengine.com/4.27/en-US/BuildingWorlds/LightingAndShadows/IESLightProfiles/) the assigned IES Profile to the Spot Light's Cone Angle , whereas what the user probably wants in practice is to instead have the Profile refitted within the Cone Angle, effectively rescaling the angle values represented in the profile.
 
-After a few iterations, the most logical and intuitive approach I arrived at was based on the assumption that the IES Profile Candela values are measured over a full hemisphere (or sphere, in the case of backscattered emissions), and thus to rescale the profile its vertical angle values would be adjusted according to the scaled projections of the original   Candela values onto the horizontal axis. The scaled Candela values obviously cause the overall emission to decrease, but this approach preserves the overall emission profile shape in a more 'natural' and visually appealing way. There’s a version of the algorithm that preserves the absolute Candela values (except  the ones lying on the horizontal axis), but causes the profile to 'bulge' outward (see the table below for comparison).
+After a few iterations, the most logical and intuitive approach I arrived at was based on the fact that the IES Profile Candela values are measured over a full hemisphere (or sphere, in the case of backscattered emissions), and thus to rescale the profile its vertical angle values need to be adjusted according to the scaled projections of the original Candela values onto the horizontal axis. The scaled Candela values obviously cause the total emission to decrease, but this approach preserves the overall emission profile shape in a more 'natural' and visually appealing way. You can force the algorithm to preserve the absolute Candela values (except the ones lying on the horizontal axis) by setting `preserve_intensity = true`, but this causes the profile to 'bulge' outward (see the table below for comparison).
 
-| Original IES Profile | Rescaled IES Profile (preserve_intensity = false) | Rescaled IES Profile (preserve_intensity = true) |
-|----------|----------|----------|
-| <center><img src="https://github.com/lfaynshteyn/lfaynshteyn.github.io/blob/main/projects/ies_rescale/img/Type%20B%20-%20Original.png" width="100%"/></center> | <center><img src="https://github.com/lfaynshteyn/lfaynshteyn.github.io/blob/main/projects/ies_rescale/img/Type%20B%20-%20PA%20False.png" width="100%"/></center> | <center><img src="https://github.com/lfaynshteyn/lfaynshteyn.github.io/blob/main/projects/ies_rescale/img/Type%20B%20-%20PA%20True.png" width="100%"/></center> |
-| <center><img src="https://github.com/lfaynshteyn/lfaynshteyn.github.io/blob/main/projects/ies_rescale/img/Type%20C%20-%20Original.png" width="100%"/></center> | <center><img src="https://github.com/lfaynshteyn/lfaynshteyn.github.io/blob/main/projects/ies_rescale/img/Type%20C%20-%20PA%20False.png" width="100%"/></center> | <center><img src="https://github.com/lfaynshteyn/lfaynshteyn.github.io/blob/main/projects/ies_rescale/img/Type%20C%20-%20PA%20True.png" width="100%"/></center> |
+<table>
+  <tr>
+  <td align='center' width="33%">Original IES Profile</td>
+  <td align='center' width="33%">Rescaled IES Profile (preserve_intensity = false; default)</td>
+  <td align='center' width="33%">Rescaled IES Profile (preserve_intensity = true)</td>
+  </tr>
+<tr>
+    <td align='center' width='33%'><img src="https://github.com/lfaynshteyn/lfaynshteyn.github.io/blob/main/projects/ies_rescale/img/Type%20B%20-%20Original.png" width="100%"/></td>
+    <td align='center' width='33%'><img src="https://github.com/lfaynshteyn/lfaynshteyn.github.io/blob/main/projects/ies_rescale/img/Type%20B%20-%20PA%20False.png" width="100%"/></td>
+    <td align='center' width='33%'><img src="https://github.com/lfaynshteyn/lfaynshteyn.github.io/blob/main/projects/ies_rescale/img/Type%20B%20-%20PA%20True.png" width="100%"/></td>
+</tr>
+<tr>
+    <td align='center' width='33%'><img src="https://github.com/lfaynshteyn/lfaynshteyn.github.io/blob/main/projects/ies_rescale/img/Type%20C%20-%20Original.png" width="100%"/></td>
+    <td align='center' width='33%'><img src="https://github.com/lfaynshteyn/lfaynshteyn.github.io/blob/main/projects/ies_rescale/img/Type%20C%20-%20PA%20False.png" width="100%"/></td>
+    <td align='center' width='33%'><img src="https://github.com/lfaynshteyn/lfaynshteyn.github.io/blob/main/projects/ies_rescale/img/Type%20C%20-%20PA%20True.png" width="100%"/></td>
+</tr>
+</table>
 
+The library supports IES Profile file parsing and serialization that is based on the [Ian Ashdown's implementation](https://seblagarde.wordpress.com/2014/11/05/ies-light-format-specification-and-reader/).
 
-The library supports IES Profile file parsing and serialization that is based on the [Ian Ashdown's implementation] (https://seblagarde.wordpress.com/2014/11/05/ies-light-format-specification-and-reader/).
-
-To visualize the original and the rescaled IES profiles I recommend using [IESviewer](http://photometricviewer.com/).
+To visualize the original and the rescaled IES profiles you can use [IESviewer](http://photometricviewer.com/).
 
 ## Usage
 
-First, add the ies_rescale.cpp & ies_rescale.h to your project.
+First, add the **ies_rescale.cpp** and **ies_rescale.h** to your project.
 Then you can use the library as follows:
 
 ```cpp
