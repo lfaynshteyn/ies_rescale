@@ -8,9 +8,9 @@ After a few iterations, the most logical and intuitive approach I arrived at was
 
 <table>
   <tr>
-  <td align='center' width="33%">Original IES Profile</td>
-  <td align='center' width="33%">Rescaled IES Profile (preserve_intensity = false; default)</td>
-  <td align='center' width="33%">Rescaled IES Profile (preserve_intensity = true)</td>
+  <th align='center' width="33%">Original IES Profile</th>
+  <th align='center' width="33%">Rescaled IES Profile (preserve_intensity = false; default)</th>
+  <th align='center' width="33%">Rescaled IES Profile (preserve_intensity = true)</th>
   </tr>
 <tr>
     <td align='center' width='33%'><img src="https://github.com/lfaynshteyn/lfaynshteyn.github.io/blob/main/projects/ies_rescale/img/Type%20B%20-%20Original.png" width="100%"/></td>
