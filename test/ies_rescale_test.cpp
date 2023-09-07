@@ -26,13 +26,14 @@ namespace {
 		}
 
 		// Rescale the IESNA photometric data using the specified cone angle
-		const auto scaled_photo_data = rescale_ies_data(*photo_data, rescale_cone_angle, preserve_intensity);
+		 auto scaled_photo_data = rescale_ies_data(*photo_data, rescale_cone_angle, preserve_intensity);
 		if (!scaled_photo_data) {
 			std::cerr << "Failed to rescale the IES profile " << photo_data->file.name << "\n";
 			return false;
 		}
 
 		// Dump the data into a memory buffer
+		scaled_photo_data->file.name = fname_out; // Optionally, update the name of the IES profile
 		const auto buffer = convert_data_to_buffer(*scaled_photo_data);
 		if (!buffer) {
 			std::cerr << "Failed to convert the rescaled IES profile to a buffer\n";
@@ -51,7 +52,31 @@ namespace {
 	// Helper functions tests
 	TEST(IesRescale, TestsOnFiles) {
 
-		if (0) {
+		using namespace ies_rescale;
+
+		if (1) {
+			EXPECT_TRUE(read_file_to_stream("../test/test_ies_profiles/Type C - 01.ies"));
+			EXPECT_TRUE(read_file_to_stream("../test/test_ies_profiles/Type C - 02.ies"));
+			EXPECT_TRUE(read_file_to_stream("../test/test_ies_profiles/Type C - 03.ies"));
+			EXPECT_TRUE(read_file_to_stream("../test/test_ies_profiles/Type B - 01.ies"));
+			EXPECT_TRUE(read_file_to_stream("../test/test_ies_profiles/Type B - 02.ies"));
+			EXPECT_TRUE(read_file_to_stream("../test/test_ies_profiles/Type B - 03.ies"));
+			EXPECT_FALSE(read_file_to_stream(""));
+		}
+
+		if (1) {
+			auto ies_stream = read_file_to_stream("../test/test_ies_profiles/Invalid Profile - 01.ies");
+			EXPECT_TRUE(ies_stream);
+			EXPECT_FALSE(convert_stream_to_data(*ies_stream));
+		}
+
+		if (1) {
+			auto ies_stream = read_file_to_stream("../test/test_ies_profiles/Truncated Profile - 01.IES");
+			EXPECT_TRUE(ies_stream);
+			EXPECT_FALSE(convert_stream_to_data(*ies_stream));
+		}
+
+		if (1) {
 			const auto fname_in = std::string{ "../test/test_ies_profiles/Type C - 03.ies" };
 			const auto file_in_path = fs::path{ fname_in };
 			const auto fname_out = file_in_path.parent_path().string() + "/" + file_in_path.stem().string() + "_rescaled.ies";
@@ -85,10 +110,49 @@ namespace {
 			const auto file_in_path = fs::path{ fname_in };
 			const auto fname_out = file_in_path.parent_path().string() + "/" + file_in_path.stem().string() + "_rescaled.ies";
 
-			const auto rescale_cone_angle = 90.f; // 180 degree rescale cone angle results in the same profile IES profile as the original.
-			const auto preserve_intensity = false;
+			{
+				const auto rescale_cone_angle = 90.f;
+				const auto preserve_intensity = false;
+				const auto res = rescale_ies_file(fname_in, fname_out, rescale_cone_angle, preserve_intensity);
+				EXPECT_TRUE(res);
+			}
 
-			const auto res = rescale_ies_file(fname_in, fname_out, rescale_cone_angle, preserve_intensity);
+			{
+				const auto rescale_cone_angle = 0.f;
+				const auto preserve_intensity = false;
+				const auto res = rescale_ies_file(fname_in, fname_out, rescale_cone_angle, preserve_intensity);
+				EXPECT_TRUE(res);
+			}
+
+			{
+				const auto rescale_cone_angle = -10.f; // Invalid cone angle
+				const auto preserve_intensity = false;
+				const auto res = rescale_ies_file(fname_in, fname_out, rescale_cone_angle, preserve_intensity);
+				EXPECT_FALSE(res);
+			}
+
+			{
+				const auto rescale_cone_angle = 181.f; // Invalid cone angle
+				const auto preserve_intensity = false;
+				const auto res = rescale_ies_file(fname_in, fname_out, rescale_cone_angle, preserve_intensity);
+				EXPECT_FALSE(res);
+			}
+
+			{
+				const auto rescale_cone_angle = 90.f;
+				const auto preserve_intensity = false;
+				const auto res = rescale_ies_file("non-existing-file.ies", fname_out, rescale_cone_angle, preserve_intensity);
+				EXPECT_FALSE(res);
+			}
+
+			{
+				const auto rescale_cone_angle = 90.f;
+				const auto preserve_intensity = false;
+				const auto res = rescale_ies_file(fname_in, "", rescale_cone_angle, preserve_intensity);
+				EXPECT_FALSE(res);
+			}
+
+
 		}
 
 	}

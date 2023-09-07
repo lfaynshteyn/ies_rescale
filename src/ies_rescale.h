@@ -92,32 +92,28 @@ namespace ies_rescale {
 		class membuf : public std::streambuf {
 		private:
 			std::vector<uint8_t> buffer_;
-			std::size_t pos_;
 
 		protected:
-			membuf() : pos_{ 0 } {
+			membuf() {
 				this->setg(nullptr, nullptr, 0);
 			}
 
 			membuf(const std::vector<uint8_t>& buf)
-				: buffer_(buf), pos_{ 0 } {
+				: buffer_(buf) {
 				reset();
 			}
 
 			void reset() {
-				pos_ = 0;
 				auto p = reinterpret_cast<char*>(buffer_.data());
 				this->setg(p, p, p + buffer_.size());
 			}
 
 			auto underflow() -> int_type override {
-				if (pos_ < buffer_.size()) {
-					auto p = reinterpret_cast<char*>(buffer_.data());
-					setg(p, p + pos_, p + buffer_.size());
-					return traits_type::to_int_type(buffer_[pos_++]);
-				}
+				// This implementation can't underflow, since all the data is stored in the buffer_ upon construction.
+				// So we simply return EOF to handle such things as a call to std::getline() in the absence of a terminating newline character.
 				return traits_type::eof();
 			}
+
 		};
 	}
 

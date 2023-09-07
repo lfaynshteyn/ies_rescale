@@ -4,10 +4,8 @@ cmake_minimum_required(VERSION 3.12)
 # Make URL download use the new CMP0135 policy: https://cmake.org/cmake/help/latest/policy/CMP0135.html
 cmake_policy(SET CMP0135 NEW)
 
-#cmake_policy(SET CMP0048 NEW)
-
 # Only use C++ in this project
-project(ies_rescale VERSION 1.0.0 LANGUAGES CXX)
+project(ies_rescale VERSION 1.1.0 LANGUAGES CXX)
 
 # Include the path to the source folder
 include_directories(${PROJECT_SOURCE_DIR}/src)
@@ -35,7 +33,7 @@ FetchContent_MakeAvailable(
 # The main unit test executable
 add_executable(ies_rescale_test ${PROJECT_SOURCE_DIR}/test/ies_rescale_test.cpp ${SOURCES})
 
-# Link against Google Test & Benchmark
+# Link against Google Test
 target_link_libraries(ies_rescale_test gtest)
 
 # Preprocesor definition to set the version

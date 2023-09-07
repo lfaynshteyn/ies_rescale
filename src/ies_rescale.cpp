@@ -54,10 +54,10 @@
 namespace ies_rescale {
 
 	// Forward declarations
-	static auto ie_populate_array(memstream& file_stream, std::vector<float>& array) -> bool;
+	static auto ie_populate_array(memstream& file_stream, const std::size_t size) -> std::vector<float>;
 	static auto ie_populate_list(memstream& file_stream, const std::string_view format, ...) -> bool;
 	static auto ie_read_tilt(memstream& file_stream) -> std::optional<IE_Data::Lamp::Tilt>;
-	static auto ie_get_line(memstream& file_stream, std::string& buffer) -> char*;
+	static auto ie_get_line(memstream& file_stream) -> std::string;
 
 	/*
 	 *************************************************************************
@@ -112,7 +112,7 @@ namespace ies_rescale {
 		{
 			// Open the IES file
 			auto file = std::ifstream{ std::string{fname}, std::ios::binary };
-			if (!file) {
+			if (!file || !file.is_open()) {
 				return {};
 			}
 
@@ -126,10 +126,10 @@ namespace ies_rescale {
 			fileSize = file.tellg();
 			file.seekg(0, std::ios::beg);
 
-			// reserve capacity
+			// Reserve capacity
 			file_data.reserve(fileSize);
 
-			// read the data:
+			// Read the data
 			file_data.insert(
 				file_data.begin(),
 				std::istream_iterator<uint8_t>(file),
@@ -152,8 +152,8 @@ namespace ies_rescale {
 		data.file.name = ies_file_name;
 
 		// Read the first line
-		auto text_buffer = std::string{};
-		if (!ie_get_line(file_stream, text_buffer)) {
+		auto text_buffer = ie_get_line(file_stream);
+		if (text_buffer.empty()) {
 			return {};
 		}
 
@@ -180,7 +180,8 @@ namespace ies_rescale {
 
 			// Read label lines
 			while (true) {
-				if (!ie_get_line(file_stream, text_buffer)) {
+				text_buffer = ie_get_line(file_stream);
+				if (text_buffer.empty()) {
 					return {};
 				}
 
@@ -246,7 +247,7 @@ namespace ies_rescale {
 					&(data.units), &(data.dim.width), &(data.dim.length),
 					&(data.dim.height)
 				)
-				) {
+			) {
 				return {};
 			}
 
@@ -260,17 +261,14 @@ namespace ies_rescale {
 		}
 
 		{
-			// Allocate space for the vertical & horizontal angle arrays
-			data.photo.vert_angles = std::vector<float>(data.photo.num_vert_angles, 0.f);
-			data.photo.horz_angles = std::vector<float>(data.photo.num_horz_angles, 0.f);
-
 			// Read in vertical angles array
-			if (!ie_populate_array(file_stream, data.photo.vert_angles)) {
+			data.photo.vert_angles = ie_populate_array(file_stream, data.photo.num_vert_angles);
+			if (data.photo.vert_angles.empty()) {
 				return {};
 			}
-
 			// Read in horizontal angles array
-			if (!ie_populate_array(file_stream, data.photo.horz_angles)) {
+			data.photo.horz_angles = ie_populate_array(file_stream, data.photo.num_horz_angles);
+			if (data.photo.horz_angles.empty()) {
 				return {};
 			}
 		}
@@ -281,11 +279,9 @@ namespace ies_rescale {
 
 			// Read in candela values arrays
 			for (int i = 0; i < data.photo.num_horz_angles; i++) {
-				// Allocate space for the candela values array
-				data.photo.candelas[i] = std::vector<float>(data.photo.num_vert_angles, 0.f);
-
 				// Read in candela values
-				if (!ie_populate_array(file_stream, data.photo.candelas[i])) {
+				data.photo.candelas[i] = ie_populate_array(file_stream, data.photo.num_vert_angles);
+				if (data.photo.candelas[i].empty()) {
 					return {};
 				}
 			}
@@ -448,7 +444,7 @@ namespace ies_rescale {
 
 	auto write_buffer_to_file(const std::vector<uint8_t>& buffer, const std::string_view file_name) -> bool {
 		auto file = std::ofstream(std::string{file_name}, std::ios::binary);
-		if (!file) {
+		if (!file || !file.is_open()) {
 			std::cerr << "Could not open file " << file_name << "\n";
 			return false;
 		}
@@ -474,8 +470,8 @@ namespace ies_rescale {
 	//!         A rescaled IES data on success or an empty object on failure
 	auto rescale_ies_data(const IE_Data& data, const float rescale_cone_angle, const bool preserve_intensity) -> std::optional<IE_Data> {
 
+		// Make sure the rescale cone angle is valid.
 		if (rescale_cone_angle < 0.f || rescale_cone_angle > 180.f) {
-			assert(false && "Invalid rescale cone angle");
 			return {};
 		}
 
@@ -513,24 +509,7 @@ namespace ies_rescale {
 					continue;
 				}
 
-				// Set a photometric profile type based vertical angle offset in degrees, that will be used to translate the vertical angle values into the [0:180] degree range.
-				auto vert_angle_typebased_offset = 0.f;
-				switch (data.photo.gonio_type)
-				{
-				case IE_Data::Photo::IE_Gonio_Type::Type_A:
-					break;
-
-				case IE_Data::Photo::IE_Gonio_Type::Type_B:
-					vert_angle_typebased_offset = 90.f;
-					break;
-
-				case IE_Data::Photo::IE_Gonio_Type::Type_C:
-				default:
-					vert_angle_typebased_offset = 0.f;
-					break;
-				}
-
-				const auto vert_angle = data.photo.vert_angles[j];// +vert_angle_typebased_offset;
+				const auto vert_angle = data.photo.vert_angles[j];
 
 				const auto is_top_hemisphere = vert_angle > 90.f;
 
@@ -574,7 +553,7 @@ namespace ies_rescale {
 					scaled_candela = is_angle_almost_90 ? candela_projected_on_x_scaled : candela;
 				}
 
-				scaled_data.photo.vert_angles[j] = (is_top_hemisphere ? 180.f - scaled_angle : scaled_angle);// -vert_angle_typebased_offset;
+				scaled_data.photo.vert_angles[j] = (is_top_hemisphere ? 180.f - scaled_angle : scaled_angle);
 				scaled_data.photo.candelas[i][j] = scaled_candela;
 
 			}
@@ -590,8 +569,8 @@ namespace ies_rescale {
 	//! Note: the file can be either part of a full IESNA-format data file or a separate TILT data file that was specified in the parent IESNA-format file on the "TILT=" line.
 	static auto ie_read_tilt(memstream& mem_stream) -> std::optional<IE_Data::Lamp::Tilt> {
 		// Read the lamp-to-luminaire geometry line
-		auto value_buffer = std::string{};
-		if (!ie_get_line(mem_stream, value_buffer)) {
+		auto value_buffer = ie_get_line(mem_stream);
+		if (value_buffer.empty()) {
 			return {};
 		}
 
@@ -602,7 +581,8 @@ namespace ies_rescale {
 			tilt.orientation = (IE_Data::Lamp::Tilt::Orientation)std::stoi(value_buffer);
 
 			// Read the number of angle-multiplying factor pairs line
-			if (!ie_get_line(mem_stream, value_buffer)) {
+			value_buffer = ie_get_line(mem_stream);
+			if (value_buffer.empty()) {
 				return {};
 			}
 		}
@@ -612,17 +592,15 @@ namespace ies_rescale {
 			tilt.num_pairs = std::stoi(value_buffer);
 
 			if (tilt.num_pairs > 0) {
-				// Allocate space for the angle and multiplying factors arrays
-				tilt.angles = std::vector<float>(tilt.num_pairs, 0.f);
-				tilt.mult_factors = std::vector<float>(tilt.num_pairs, 0.f);
-
 				// Read in the angle values
-				if (!ie_populate_array(mem_stream, tilt.angles)) {
+				tilt.angles = ie_populate_array(mem_stream, tilt.num_pairs);
+				if (tilt.angles.empty()) {
 					return {};
 				}
 
 				// Read in the multiplying factor values
-				if (!ie_populate_array(mem_stream, tilt.mult_factors)) {
+				tilt.mult_factors = ie_populate_array(mem_stream, tilt.num_pairs);
+				if (tilt.mult_factors.empty()) {
 					return {};
 				}
 			}
@@ -645,12 +623,12 @@ namespace ies_rescale {
 		// Todo: rewrite this function as a variadic template function to avoid the archaic and error-prone va_list stuff.
 
 		// Read in the first line
-		auto buffer = std::string{};
-		auto p_buffer = ie_get_line(mem_stream, buffer);
-		if (!p_buffer) {
+		auto buffer = ie_get_line(mem_stream);
+		if (buffer.empty()) {
 			return false;
 		}
 
+		auto p_buffer = &buffer[0];
 		for (; ; ) {   // Skip over leading delimiters
 			const auto c = *p_buffer;
 			if (c == '\0') {      // End of current line?
@@ -749,10 +727,13 @@ namespace ies_rescale {
 				const auto c = *p_buffer;
 				if (c == '\0') {   // End of current line?
 					// Get next line
-					if (!(p_buffer = ie_get_line(mem_stream, buffer))) {
+					buffer = ie_get_line(mem_stream);
+					if (buffer.empty()) {
 						va_end(p_args);   // Clean up
 						return false;
 					}
+
+					p_buffer = &buffer[0];
 				}
 				else if ((isspace(c) != 0) || c == ',') {
 					++p_buffer;
@@ -770,24 +751,25 @@ namespace ies_rescale {
 
 	//! Read in one or more lines from an IESNA-format data file and convert their substrings to an array of floating point numbers.
 	//! \param[in]		mem_stream			The memory stream initialized with the content of an IES profile file
-	//! \param[out]	array				The vector of floats to store the read values
+	//! \param[in]		size				The number of floats to read in
 	//! \return
-	//!         A boolean value indicating success or failure
-	static auto ie_populate_array(memstream& mem_stream, std::vector<float>& array) -> bool {
+	//!         A populated array of floats on success, an empty array on failure
+	static auto ie_populate_array(memstream& mem_stream, const std::size_t size) -> std::vector<float> {
 		auto buffer = std::string{};
 
 		// Read in the first line 
-		char* p_buffer = nullptr;           // Input buffer pointer
-		if (!(p_buffer = ie_get_line(mem_stream, buffer))) {
-			return false;
+		buffer = ie_get_line(mem_stream);
+		if (buffer.empty()) {
+			return {};
 		}
 
-		char c;               // Scratch variable
+		auto p_buffer = &buffer[0];
+		auto c = char{};
 		for (; ; ) {  // Skip over leading delimiters
 			c = *p_buffer;
 
 			if (c == '\0') {     // End of current line?
-				return false;
+				return {};
 			}
 			else if ((isspace(c) != 0)) {
 				p_buffer++;
@@ -797,6 +779,8 @@ namespace ies_rescale {
 			}
 		}
 
+		auto array = std::vector<float>(size, 0.f);
+
 		for (auto i = size_t{ 0 }; ; ) {   // Parse the array elements
 
 			// Convert the current substring to its floating point value
@@ -805,7 +789,7 @@ namespace ies_rescale {
 			iss >> ftemp;
 			if (iss.fail()) {
 				assert(false && "failed to parse the current substring to its floating point value");
-				return false;
+				return {};
 			}
 
 			array[i++] = ftemp;
@@ -828,8 +812,9 @@ namespace ies_rescale {
 			for (; ; ) {        // Skip over delimiters
 				if (c == '\0') {   // End of current line?
 					// Get next line
-					if (!(p_buffer = ie_get_line(mem_stream, buffer))) {
-						return false;
+					buffer = ie_get_line(mem_stream);
+					if (buffer.empty()) {
+						return {};
 					}
 
 					p_buffer = &buffer[0];
@@ -845,17 +830,17 @@ namespace ies_rescale {
 			}
 		}
 
-		return true;
+		return array;
 	}
 
 
 	//! Get a line from the memstream and stores it in the provided buffer
 	//! \param[in]	mem_stream			The memory stream initialized with the content of an IES profile file
-	//! \param[out]	buffer				The string to store the read line
 	//! \return
-	//!         A pointer to the first character of the string on success
+	//!         A string containing the read line on success or an empty string on failure
 	//!         \c nullptr on failure
-	static auto ie_get_line(memstream& mem_stream, std::string& buffer) -> char* {
+	static auto ie_get_line(memstream& mem_stream) -> std::string {
+		auto buffer = std::string{};
 		std::getline(mem_stream, buffer);
 
 		if (!buffer.empty() && buffer.back() == 0x0D) {
@@ -863,10 +848,10 @@ namespace ies_rescale {
 		}
 
 		if (buffer.size()) {
-			return &buffer[0];
+			return buffer;
 		}
 
-		return nullptr;
+		return "";
 	}
 
 } // namespace ies_rescale

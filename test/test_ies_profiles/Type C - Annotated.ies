@@ -1,0 +1,31 @@
+IESNA:LM-63-1995
+[TEST] ABC1234 ABC Laboratories
+[MANUFAC] Aardvark Lighting Inc.
+[LUMCAT] SKYVIEW 123-XYZ-abs-400
+[LUMINAIRE] Wide beam flood to be used without tilt
+[LAMPCAT] MH-400-CLEAR
+[LAMP] Metal Halide 400 watt
+[BALLASTCAT] Global 16G6031-17R
+[BALLAST] 400W 277V MH
+[MAINTCAT] 4
+[OTHER] This luminaire is useful as an indirect flood
+[MORE] and to reduce light pollution in down light
+[MORE] applications.
+[SEARCH] POLLUTION SPORTS INDIRECT
+[BLOCK]
+[LUMCAT] TENNISVIEW 123-XYZ-abc-400
+[LUMINAIRE] Wide beam flood for indirect applications.
+[ENDBLOCK]
+TILT=INCLUDE
+1
+13 // # of tilt angles
+0 15 30 45 60 75 90 105 120 135 150 165 180 // Tilt angles
+1.0 .95 .94 .90 .88 .87 .98 .87 .88 .90 .94 .95 1.0 // Tilt values
+1 50000 1 5 3 1 1 .5 .6 0 //# lamp.num_lamps, lamp.lumens_lamp, lamp.multiplier, photo.num_vert_angles, photo.num_horz_angles, photo.gonio_type, units, dim.width, dim.length, dim.height
+1.0 1.0 495 // elec.ball_factor, elec.blp_factor, elec.input_watts
+0 22.5 45 67.5 90 // Vertical angles; If the distribution lies completely in the bottom hemisphere, the first and last angles must be 0° and 90°, respectively. If the distribution lies completely in the top hemisphere, the first and last angles must be 90° and 180°, respectively. Otherwise, they must be 0° and 180°, respectively.
+0 45 90 // Horizontal angles;  The first angle must be 0°. The last angle determines the degree of lateral symmetry displayed by the intensity distribution. If it is 0°, the distribution is axially symmetric. If it is 90°, the distribution is symmetric in each quadrant. If it is 180°, the distribution is symmetric about a vertical plane. If it is greater than 180° and less than or equal to 360°, the distribution exhibits no lateral symmetries. All other values are invalid.
+10000 50000 25000 10000 5000 // Candela values (# of horizontal angles (lines) * # of vertiacal angles (columns))
+10000 35000 16000 8000 3000	// Ditto
+10000 20000 10000 5000 1000	// Ditto
+
