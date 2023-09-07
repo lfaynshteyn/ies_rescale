@@ -5,7 +5,7 @@ cmake_minimum_required(VERSION 3.12)
 cmake_policy(SET CMP0135 NEW)
 
 # Only use C++ in this project
-project(ies_rescale VERSION 1.1.0 LANGUAGES CXX)
+project(ies_rescale VERSION 1.1.1 LANGUAGES CXX)
 
 # Include the path to the source folder
 include_directories(${PROJECT_SOURCE_DIR}/src)
