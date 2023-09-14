@@ -74,6 +74,7 @@
 #include <sstream>
 #include <iomanip>
 #include <cassert>
+#include <iterator>
 
 #include "ies_rescale.h"
 
